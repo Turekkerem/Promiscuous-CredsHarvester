@@ -14,7 +14,7 @@
 #include "CryptoKeysDump.h"
 #include "Pillaging.h"
 #include "KeePass.h"
-#include "whatever_dpapi_blob.h"
+#include "WhateverDPAPIBlob.h"
 #include <psapi.h>
 
 void PrintBanner() {
