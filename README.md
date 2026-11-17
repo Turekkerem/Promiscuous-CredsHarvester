@@ -346,7 +346,7 @@ A future module would scan both locations, parse the LevelDB files, and surface 
 To compile the modular source code successfully within a Windows environment utilizing MSYS2 and the MinGW toolchain, execute the following command in the terminal:
 
 ```bash
-g++ main.cpp sqlite3.o -o DPAPI_PoC.exe -std=c++17 -O2 -m64 -I. -ladvapi32 -lwlanapi -lncrypt -lole32 -luuid -lshell32 -lshlwapi -lcrypto -lws2_32 -lcrypt32 -ladvapi32 -luser32 -lgdi32 -lz -static
+g++ main.cpp "Third party/sqlite3.o" -o DPAPI_PoC.exe -std=c++17 -O2 -m64 -IModules -I"Third party" -ladvapi32 -lwlanapi -lncrypt -lole32 -luuid -lshell32 -lshlwapi -lcrypto -lws2_32 -lcrypt32 -ladvapi32 -luser32 -lgdi32 -lz -static
 ```
 
 ### 7.2 Command-Line Switches & Usage (Toggles)
