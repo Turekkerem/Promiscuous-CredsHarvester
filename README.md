@@ -71,6 +71,12 @@ Consequently, this creates a significant security gap. Malware, unauthorized scr
   * If the native API returns zero items (typical on consumer machines, where the vault only holds Microsoft Store AppContainer tokens), the module falls back to `vaultcmd` via `_popen` and prints metadata only (target, username, SID). The fallback is language-independent: vault names are never hardcoded — GUIDs are extracted from `vaultcmd /list` and reused verbatim.
   * **Note:** on a standard consumer workstation the Web Credentials vault contains only internal UWP tokens (`SnapshotEncryptionIV`, `SnapshotEncryptionKey`) and no user passwords. Real user credentials live in `Credential Manager` (see `SystemCredentialsDump.h`) and browser `Login Data` databases (see `ChromiumDump.h`).
 
+  * **`KeePass.h`**:
+  * Extracts KeePass database master keys, returning the appropriate key in **HEX format** if multiple keys or databases are present.
+  * **Caveats & Limitations**:
+    * **Windows User Context Dependency**: The extracted master/temporal key will only successfully unlock the target database if it is configured to decrypt solely via the Windows user account context.
+    * **Password Dumping Limitation**: Direct extraction and dumping of actual database entries and passwords is not implemented yet. Due to deserialization hurdles regarding the KeePass file format (specifically its complex internal XML structure), this module currently focuses exclusively on dumping the master cryptographic keys.
+
 ### 2.3 Browser Credential Harvesting
 
 * **`ChromiumDump.h`**:
@@ -333,15 +339,45 @@ A future module would scan both locations, parse the LevelDB files, and surface 
 
 ---
 
-## 7. Project Compilation Guidelines
+## 7. Project Compilation & Command-Line Usage
+
+### 7.1 Project Compilation Guidelines
 
 To compile the modular source code successfully within a Windows environment utilizing MSYS2 and the MinGW toolchain, execute the following command in the terminal:
 
-
+```bash
+g++ main.cpp sqlite3.o -o DPAPI_PoC.exe -std=c++17 -O2 -m64 -I. -ladvapi32 -lwlanapi -lncrypt -lole32 -luuid -lshell32 -lshlwapi -lcrypto -lws2_32 -lcrypt32 -ladvapi32 -luser32 -lgdi32 -lz -static
 ```
-g++ main.cpp sqlite3.o -o DPAPI_PoC.exe -std=c++17 -O2 -lcrypt32 -lbcrypt -ladvapi32 -lwlanapi -lncrypt -lole32 -luuid -lshell32 -lshlwapi -static
-```
 
+### 7.2 Command-Line Switches & Usage (Toggles)
+
+The compiled PoC engine supports flexible command-line arguments to execute specific modules individually or perform a full system dump. Running the executable without arguments or with the help flag will display the usage menu.
+
+* **Main Options**:
+  * `--dump` — Execute all available modules sequentially (full data dump).
+  * `-h`, `--help` — Display the help message and listing of available command-line switches.
+
+* **System & Credential Manager Options**:
+  * `--creds` — Dump all system credentials (combines WCM, Wi-Fi, BitLocker auto-unlock, and EAP certificates).
+  * `--wcm` — Dump credentials directly from the Windows Credential Manager (`CredEnumerateW`).
+  * `--wifi` — Force DPAPI unprotection to extract plaintext Wi-Fi network profiles and keys.
+  * `--bitlocker` — Decrypt BitLocker volume auto-unlock keys stored in the registry.
+  * `--dpapi` — Dump DPAPI master keys and password history from `%APPDATA%\Microsoft\Protect\{SID}\`.
+  * `--vault` — Dump entries from the Windows Vault (`vaultcli.dll`).
+
+* **Browser & Session Options**:
+  * `--browsers` — Dump all supported browsers and session cookie stores simultaneously.
+  * `--browser <type>` — Dump a specific browser category:
+    * `chromium` — Chromium-based browsers (Google Chrome, Microsoft Edge, Brave, Vivaldi, Opera).
+    * `firefox` — Mozilla-based profiles and key databases (`key3.db`/`key4.db`).
+    * `cookies` — Gecko (`cookies.sqlite`) and legacy Internet Explorer cookies.
+
+* **Additional & Specialized Options**:
+  * `--rdp` — Scan and parse RDP artifacts (RDCMan `.rdg` XML files and mstsc `.rdp` configurations).
+  * `--dev` — Harvest CLI and developer tool credentials (AWS, Azure, GCP, Git, NPM, Docker, Kubernetes, mRemoteNG).
+  * `--crypto` — Scan for cryptographic key material (SSH keys, GnuPG keyrings, WireGuard, and OpenVPN configurations).
+  * `--pillaging` — Run targeted file-system string searches across `Desktop`, `Documents`, and `Downloads`.
+  * `--keepass` — Execute the KeePass master key extraction module.
 ---
 
 ## 8. Project Layout
