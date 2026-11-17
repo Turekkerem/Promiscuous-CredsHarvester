@@ -383,26 +383,31 @@ The compiled PoC engine supports flexible command-line arguments to execute spec
 ## 8. Project Layout
 
 ```
-DPAPI-Abuser-PoC/
+Promiscuous-CredsHarvester/
 ├── .gitattributes
 ├── .gitignore
 ├── README.md
 ├── main.cpp
-├── CryptoEngine.h
-├── SystemCredentialsDump.h
-├── DpapiMasterKeys.h
-├── VaultDump.h
-├── ChromiumDump.h
-├── FirefoxDump.h
-├── GeckoAndIECookies.h
-├── RdpDump.h
-├── DevCredentialsDump.h
-├── CryptoKeysDump.h
-├── Pillaging.h
-├── sqlite3.h
-└── DPAPI_PoC.exe
+├── DPAPI_PoC.exe
+├── Modules/
+│   ├── CryptoEngine.h
+│   ├── SystemCredentialsDump.h
+│   ├── DpapiMasterKeys.h
+│   ├── VaultDump.h
+│   ├── ChromiumDump.h
+│   ├── FirefoxDump.h
+│   ├── GeckoAndIECookies.h
+│   ├── RdpDump.h
+│   ├── DevCredentialsDump.h
+│   ├── CryptoKeysDump.h
+│   └── Pillaging.h
+└── Third party/
+    ├── sqlite3.h
+    ├── sqlite3.c
+    ├── sqlite3.o
+    └── libsqlite3.a
 ```
-### 8.1 Files Ignored by Git
+### 8.1 Files Ignored by Git (obsolete but it would be odd to just delete that)
 
 The following artefacts are present locally but excluded from the repository via `.gitignore`:
 
