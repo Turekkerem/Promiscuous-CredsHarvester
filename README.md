@@ -149,6 +149,22 @@ Consequently, this creates a significant security gap. Malware, unauthorized scr
   * Linked directly into the project to give compiled binaries the native capability to parse embedded database architectures without requiring external DLL dependencies on the target host.
   * `libsqlite3.a` is the pre-built static archive used by the MSYS2 / MinGW toolchain.
 
+### 2.8 Password History
+
+* **`CredhistDump.h`**:
+  * Locates and parses the Windows password history file located at `%APPDATA%\Microsoft\Protect\CREDHIST`.
+  * Extracts historical DPAPI master key derivation parameters (salts, PBKDF2 iteration counts, algorithm identifiers, user SIDs, and encrypted verification hashes).
+  * Formats and outputs Hashcat-compatible hash lines (`-m 15920` / `-m 15930`) for offline password recovery.
+  * Supports walking the entire password history chain when supplied with a known previous user password via `--credhist-pass <password>`.
+  * **Caveat & Compatibility Note**: *Compatibility on newer Windows versions is not fully verified—changes to internal DPAPI structures or security mechanisms in recent builds may cause parsing errors or prevent successful decryption.*
+
+### 2.9 Arbitrary DPAPI Blobs
+
+* **`WhateverDPAPIBlob.h`**:
+  * Provides standalone analysis and unprotection for arbitrary DPAPI blob files via `--decrypt-blob <path>`.
+  * Scans the target file for the standard DPAPI provider signature (`01 00 00 00 D0 8C 9D DF...`).
+  * Parses blob header metadata (Master Key GUID, version, flags) and verifies whether the required Master Key file (`{MasterKeyGUID}`) exists within the user's `%APPDATA%\Microsoft\Protect\{SID}\` store.
+  * Iterates through multiple flag combinations (`0`, `CRYPTPROTECT_UI_FORBIDDEN`, `CRYPTPROTECT_LOCAL_MACHINE`) when invoking `CryptUnprotectData` to maximize decryption success across different blob scopes.
 ---
 
 ## 3. Deep-Dive: How DPAPI Secures and Unlocks Browser Data
