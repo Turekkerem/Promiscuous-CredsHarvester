@@ -15,25 +15,29 @@
 #include "Pillaging.h"
 #include "KeePass.h"
 #include "WhateverDPAPIBlob.h"
+#include "CredhistDump.h"
 #include <psapi.h>
 
-void PrintBanner() {
-    #define RESET   "\033[0m"
-    #define CYAN    "\033[36m"
-    #define GREEN   "\033[32m"
-    #define BOLD    "\033[1m"
+bool g_useColors = true;
 
+#define RESET   (g_useColors ? "\033[0m" : "")
+#define CYAN    (g_useColors ? "\033[36m" : "")
+#define GREEN   (g_useColors ? "\033[32m" : "")
+#define BOLD    (g_useColors ? "\033[1m" : "")
+
+void PrintBanner() {
     std::cout << CYAN << "========================================================\n" << RESET;
     std::cout << BOLD << "  Promiscuous-CredsHarvester — Academic PoC Engine      \n" << RESET;
     std::cout << CYAN << "--------------------------------------------------------\n" << RESET;
-    std::cout << "  Made by: " << GREEN << "Turekkerem (Kerem Ozdogan)" << RESET << "\n";
+    std::cout << "  Made by: " << GREEN << "Turekkerem (Kerem Özdoğan)" << RESET << "\n";
     std::cout << CYAN << "========================================================\n" << RESET;
 }
 
 void PrintHelp(const char* progName) {
     std::cout << "Usage: " << progName << " [options]\n\n";
     std::cout << "Main options:\n";
-    std::cout << "  --dump                  Run all modules (full dump)\n\n";
+    std::cout << "  --dump                  Run all modules (full dump)\n";
+    std::cout << "  --normal                Run without ANSI colors (for restricted cmd)\n\n";
     std::cout << "System & Credential Manager options:\n";
     std::cout << "  --creds                 Dump all system credentials\n";
     std::cout << "  --wcm                   Dump Windows Credential Manager\n";
@@ -53,12 +57,23 @@ void PrintHelp(const char* progName) {
     std::cout << "  --crypto                Dump cryptographic key material\n";
     std::cout << "  --pillaging             General file pillaging\n";
     std::cout << "  --keepass               Dump KeePass databases\n";
-    std::cout << "  --uncrypt-blob <path>   Odszyfruj blob DPAPI z pliku\n";
+    std::cout << "  --decrypt-blob <path>   Decrypt arbitrary DPAPI blob from file\n";
+    std::cout << "  --credhist              Dump CREDHIST password history (offline hash export)\n";
+    std::cout << "  --credhist-pass <pwd>   Dump CREDHIST and decrypt with supplied password\n";
     std::cout << "  -h, --help              Display this help message\n";
 }
 
 int main(int argc, char* argv[]) {
     SetConsoleOutputCP(CP_UTF8);
+
+    // Check for --normal flag before printing banner
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--normal") {
+            g_useColors = false;
+            break;
+        }
+    }
+
     PrintBanner();
 
     if (argc < 2) {
@@ -98,6 +113,7 @@ int main(int argc, char* argv[]) {
         DevCredentialsDump::Run();
         CryptoKeysDump::Run();
         Pillaging::Run();
+        CredHistDump::Run();
         ranAny = true;
     } else {
         for (int i = 1; i < argc; ++i) {
@@ -175,6 +191,7 @@ int main(int argc, char* argv[]) {
             }
             else if (arg == "--crypto") {
                 std::cout << "[*] Dumping cryptographic key materials...\n";
+                CryptoKeysDump::LoginsDump(); // or CryptoKeysDump::Run() depending on header
                 CryptoKeysDump::Run();
                 ranAny = true;
             }
@@ -183,28 +200,43 @@ int main(int argc, char* argv[]) {
                 Pillaging::Run();
                 ranAny = true;
             }
-            else if (arg == "--keepass") {
+            else if (arg == `--keepass`) {
                 std::cout << "[*] Running KeePass module...\n";
                 KeePass::Run();
                 ranAny = true;
             }
-            else if (arg == "--uncrypt-blob") {
+            else if (arg == "--decrypt-blob") {
                 if (i + 1 < argc) {
                     std::string path = argv[++i];
-                    std::wstring wpath(path.begin(), path.end()); // prosta konwersja
+                    std::wstring wpath(path.begin(), path.end());
                     std::cout << "[*] Odszyfrowywanie bloba DPAPI: " << path << "\n";
                     int ret = WhateverDpapiBlob::DecryptBlobFromFile(wpath);
                     if (ret != 0)
                         std::cout << "[-] Nie udało się odszyfrować bloba.\n";
                 } else {
-                    std::cout << "[-] Błąd: --uncrypt-blob wymaga ścieżki do pliku.\n";
+                    std::cout << "[-] Błąd: --decrypt-blob wymaga ścieżki do pliku.\n";
+                }
+                ranAny = true;
+            }
+            else if (arg == "--credhist") {
+                std::cout << "[*] Dumping CREDHIST password history...\n";
+                CredHistDump::Run();
+                ranAny = true;
+            }
+            else if (arg == "--credhist-pass") {
+                if (i + 1 < argc) {
+                    std::string pwd = argv[++i];
+                    std::cout << "[*] Dumping CREDHIST and decrypting with supplied password...\n";
+                    CredHistDump::Run(pwd);
+                } else {
+                    std::cout << "[-] Error: --credhist-pass requires a password argument.\n";
                 }
                 ranAny = true;
             }
         }
     }
 
-    if (!ranAny && !runAll) {
+    if (!ranAny && !runAll && !runHelp) {
         std::cout << "[-] No valid arguments provided. Use --help to view available options.\n";
     }
 
